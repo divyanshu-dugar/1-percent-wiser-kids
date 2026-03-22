@@ -402,7 +402,7 @@ export default function AboutPage() {
             </button>
 
             <button className="inline-flex items-center gap-3 border border-white/10 px-8 py-4 rounded-xl text-slate-100 hover:bg-white/6 transition">
-              Download Program Brochure
+              Download Program Brochure (Coming Soon)
             </button>
           </motion.div>
 
