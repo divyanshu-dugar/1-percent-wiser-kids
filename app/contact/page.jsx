@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Calendar, Clock, MapPin, BookOpen, Send, MessageCircle, ArrowRight, Star, Sparkles, Users, Target } from "lucide-react";
 import { motion } from "framer-motion";
-import emailjs from "emailjs-com";
 
 export default function BookInfoSession() {
   const [formData, setFormData] = useState({
@@ -14,6 +13,8 @@ export default function BookInfoSession() {
   });
 
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   const handleChange = (e) => {
     setFormData({
@@ -24,28 +25,32 @@ export default function BookInfoSession() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setSubmitError("");
+    setIsSubmitting(true);
 
     try {
-      // Send confirmation email to the user who filled the form
-      await emailjs.send(
-        process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID,   // Service ID
-        process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID,  // Template ID
-        {
-          to_email: formData.email,   // recipient (user who filled the form)
-          to_name: formData.name,     // their name
-          from_name: "1% Wiser - Kids", // your default sender name
-          to_phone: formData.phone,
-          message: `${formData.message ? formData.message : ""}`,
+      const response = await fetch("/api/contact", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-        process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY    // Public Key
-      );
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.ok) {
+        throw new Error(data.error || "Failed to send request");
+      }
 
       setIsSubmitted(true);
       setFormData({ name: "", phone: "", email: "", message: "" });
 
     } catch (err) {
-      console.error("EmailJS Error:", err);
-      alert("❌ Failed to send. Please try again.");
+      console.error("Contact form submit error:", err);
+      setSubmitError("Failed to send your request. Please try again or use WhatsApp.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -282,12 +287,13 @@ export default function BookInfoSession() {
                       <div className="flex flex-col sm:flex-row gap-4 pt-4">
                         <motion.button
                           type="submit"
+                          disabled={isSubmitting}
                           whileHover={{ scale: 1.02 }}
                           whileTap={{ scale: 0.98 }}
-                          className="inline-flex items-center justify-center gap-3 bg-gradient-to-r from-[#F58634] to-[#FBBF24] text-slate-900 px-8 py-4 rounded-xl font-semibold shadow-2xl hover:scale-[1.02] transition-transform flex-1"
+                          className="inline-flex items-center justify-center gap-3 bg-gradient-to-r from-[#F58634] to-[#FBBF24] text-slate-900 px-8 py-4 rounded-xl font-semibold shadow-2xl hover:scale-[1.02] transition-transform flex-1 disabled:opacity-70 disabled:cursor-not-allowed"
                         >
                           <Send size={18} />
-                          Book Free Session
+                          {isSubmitting ? "Sending..." : "Book Free Session"}
                           <ArrowRight size={18} />
                         </motion.button>
                         
@@ -302,6 +308,12 @@ export default function BookInfoSession() {
                           Message on WhatsApp
                         </motion.button>
                       </div>
+
+                      {submitError && (
+                        <p className="text-sm text-red-300 bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-3">
+                          {submitError}
+                        </p>
+                      )}
                       
                       <p className="text-sm text-slate-400 text-center pt-4 border-t border-white/10">
                         Better yet, see us in person! We'd love to show you our center and discuss your child's unique needs.
